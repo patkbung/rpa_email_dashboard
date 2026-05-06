@@ -51,11 +51,39 @@ html, body, [class*="css"] {{
 }}
 
 /* ── Remove default streamlit elements ── */
-#MainMenu, footer, header {{ visibility: hidden; }}
+#MainMenu, footer {{ visibility: hidden; }}
+header {{ visibility: hidden; }}
+
+/* ── Hide sidebar collapse/expand buttons completely ── */
+[data-testid="collapsedControl"] {{
+    display: none !important;
+}}
+button[data-testid="baseButton-header"] {{
+    display: none !important;
+}}
+[data-testid="stSidebarCollapseButton"] {{
+    display: none !important;
+}}
+section[data-testid="stSidebar"] > div:first-child > div:first-child button {{
+    display: none !important;
+}}
+
+
 .block-container {{
     padding-top: 1.5rem;
     padding-bottom: 2rem;
     max-width: 1400px;
+}}
+
+
+/* ── Force sidebar always visible (cannot collapse) ── */
+section[data-testid="stSidebar"] {{
+    transform: translateX(0) !important;
+    min-width: 240px !important;
+    max-width: 320px !important;
+    visibility: visible !important;
+    display: block !important;
+    opacity: 1 !important;
 }}
 
 /* ── Sidebar ── */
@@ -430,7 +458,6 @@ chart_col, donut_col = st.columns([3, 2], gap="large")
 
 with chart_col:
     st.markdown('<div class="section-label">📊 Files by Type</div>', unsafe_allow_html=True)
-    st.markdown('<div class="neu-panel">', unsafe_allow_html=True)
     if "file_type" in df.columns and not df.empty:
         ft_counts = (
             df["file_type"]
@@ -466,11 +493,9 @@ with chart_col:
         st.altair_chart(bar, use_container_width=True)
     else:
         st.info("No data in selected date range.")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 with donut_col:
     st.markdown('<div class="section-label">🍩 Status Split</div>', unsafe_allow_html=True)
-    st.markdown('<div class="neu-panel">', unsafe_allow_html=True)
     if "status" in df.columns and not df.empty:
         status_counts = (
             df["status"]
@@ -482,7 +507,7 @@ with donut_col:
 
         donut = (
             alt.Chart(status_counts)
-            .mark_arc(innerRadius=60, outerRadius=100, cornerRadius=6)
+            .mark_arc(innerRadius=38, outerRadius=65, cornerRadius=6)
             .encode(
                 theta=alt.Theta("count:Q"),
                 color=alt.Color("status:N",
@@ -501,19 +526,17 @@ with donut_col:
                     alt.Tooltip("count:Q",  title="Count"),
                 ],
             )
-            .properties(height=240, background=BG)
+            .properties(height=200, background=BG, padding={"top": 20, "bottom": 5, "left": 5, "right": 5})
             .configure_view(strokeWidth=0)
         )
         st.altair_chart(donut, use_container_width=True)
     else:
         st.info("No status data.")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TREND LINE
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="section-label">📈 Daily Activity</div>', unsafe_allow_html=True)
-st.markdown('<div class="neu-panel">', unsafe_allow_html=True)
 if "date" in df.columns and not df.empty and df["date"].notna().any():
     daily = (
         df.groupby(["date", "status"])
@@ -554,7 +577,6 @@ if "date" in df.columns and not df.empty and df["date"].notna().any():
     st.altair_chart(trend, use_container_width=True)
 else:
     st.info("Not enough data to show trend.")
-st.markdown('</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LOG TABLE
@@ -584,7 +606,7 @@ if search:
     ).any(axis=1)
     display_df = display_df[mask]
 
-st.markdown('<div class="neu-panel" style="padding:0.8rem 1rem;">', unsafe_allow_html=True)
+# st.markdown('<div class="neu-panel" style="padding:0.8rem 1rem;">', unsafe_allow_html=True)
 st.dataframe(
     display_df,
     width="stretch",
@@ -596,14 +618,14 @@ st.dataframe(
         "Type":    st.column_config.TextColumn("Type"),
     },
 )
-st.markdown('</div>', unsafe_allow_html=True)
+# st.markdown('</div>', unsafe_allow_html=True)
 
 # Summary footer
-st.markdown(f"""
-<div style="text-align:center; margin-top:2rem;">
-    <span class="neu-tag">📁 {total} total</span>
-    <span class="neu-tag" style="color:#6bcfa0;">✅ {success} success</span>
-    <span class="neu-tag" style="color:{ACCENT};">❌ {failed} failed</span>
-    <span class="neu-tag">📅 {date_from} → {date_to}</span>
-</div>
-""", unsafe_allow_html=True)
+# st.markdown(f"""
+# <div style="text-align:center; margin-top:2rem;">
+#     <span class="neu-tag">📁 {total} total</span>
+#     <span class="neu-tag" style="color:#6bcfa0;">✅ {success} success</span>
+#     <span class="neu-tag" style="color:{ACCENT};">❌ {failed} failed</span>
+#     <span class="neu-tag">📅 {date_from} → {date_to}</span>
+# </div>
+# """, unsafe_allow_html=True)
