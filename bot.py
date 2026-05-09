@@ -26,6 +26,7 @@ from datetime import datetime
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 from config import (
@@ -112,6 +113,7 @@ def create_report_if_missing() -> None:
 
     wb = openpyxl.Workbook()
     ws = wb.active
+    assert ws is not None, "openpyxl returned no active worksheet"
     ws.title = "Daily Report"
 
     ws.freeze_panes = "A2"
@@ -174,6 +176,7 @@ def write_log(
 
     wb = openpyxl.load_workbook(REPORT_FILE)
     ws = wb.active
+    assert ws is not None, "openpyxl returned no active worksheet"
 
     even_fill   = PatternFill("solid", fgColor="DCE6F1")
     odd_fill    = PatternFill("solid", fgColor="FFFFFF")
@@ -400,8 +403,15 @@ def _process_mailbox(
             print(f"    [⚠] Empty response for email ID {eid.decode()} — skipping.")
             continue
 
-        raw_email = msg_data[0][1]
-        msg       = email.message_from_bytes(raw_email)
+        first = msg_data[0]
+        if not isinstance(first, tuple):
+            print(f"    [⚠] Unexpected fetch response for email ID {eid.decode()} — skipping.")
+            continue
+        raw_email = first[1]
+        if not isinstance(raw_email, bytes):
+            print(f"    [⚠] Non-bytes payload for email ID {eid.decode()} — skipping.")
+            continue
+        msg = email.message_from_bytes(raw_email)
 
         subject = _decode_mime_words(msg.get("Subject", "(no subject)"))
         sender  = _decode_mime_words(msg.get("From",    "(unknown sender)"))
@@ -436,8 +446,8 @@ def _process_mailbox(
             # ── Save to temp_downloads/ ───────────────────────────────────────
             try:
                 payload = part.get_payload(decode=True)
-                if payload is None:
-                    print(f"      [⚠] Empty payload for {file_name} — skipping.")
+                if not isinstance(payload, bytes):
+                    print(f"      [⚠] Empty or non-bytes payload for {file_name} — skipping.")
                     continue
 
                 with open(temp_path, "wb") as fh:
@@ -524,10 +534,17 @@ def _find_spam_folder(mail: imaplib.IMAP4_SSL) -> str:
     for item in mailbox_list:
         if not item:
             continue
-        line = item.decode("utf-8", errors="replace") if isinstance(item, bytes) else item
+        # Normalise to str — items can be bytes, str, or tuple
+        if isinstance(item, bytes):
+            line: str = item.decode("utf-8", errors="replace")
+        elif isinstance(item, str):
+            line = item
+        else:
+            # Unexpected type (e.g. tuple from some servers) — skip
+            continue
 
         # Extract raw folder name from the last quoted segment
-        m = _re.search(r'"\'([^\']+)\"\\s*$', line)
+        m = _re.search(r"\'([^\']+)\'\s*$", line)
         if not m:
             m = _re.search(r'"([^"]+)"\s*$', line)
         folder_raw = m.group(1) if m else line.rsplit(None, 1)[-1].strip('"')
@@ -709,6 +726,7 @@ def gmail_job() -> None:
 
 if __name__ == "__main__":
     import argparse
+    # pyrefly: ignore [missing-import]
     import schedule
     import time as _time
 

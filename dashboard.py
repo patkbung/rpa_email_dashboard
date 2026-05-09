@@ -8,7 +8,9 @@ Run with:
 
 import os
 import pandas as pd
+# pyrefly: ignore [missing-import]
 import streamlit as st
+# pyrefly: ignore [missing-import]
 import altair as alt
 from datetime import datetime, date, timedelta
 

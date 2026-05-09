@@ -15,6 +15,7 @@ What it checks:
 import imaplib
 import os
 import re
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 load_dotenv()
