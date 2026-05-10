@@ -1,31 +1,20 @@
-"""
-dashboard.py — RPA Email Attachment Organizer · Daily Dashboard
-Neumorphism (Soft UI) theme — light gray + coral pink accents
-
-Run with:
-    streamlit run dashboard.py
-"""
-
 import os
 import pandas as pd
-# pyrefly: ignore [missing-import]
 import streamlit as st
-# pyrefly: ignore [missing-import]
 import altair as alt
 from datetime import datetime, date, timedelta
 
 from config import REPORT_FILE, REPORT_COLUMNS
 
-# ── Page config (must be first Streamlit call) ────────────────────────────────
 st.set_page_config(
-    page_title="RPA Email Attachment Dashboard",
+    page_title="Email Attachment Dashboard",
     page_icon="📬",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ══════════════════════════════════════════════════════════════════════════════
-# CUSTOM CSS — Neumorphism Soft UI
+# CSS
 # ══════════════════════════════════════════════════════════════════════════════
 ACCENT      = "#f4896b"   # coral / salmon
 ACCENT_SOFT = "#ffd6cc"   # light coral tint
@@ -336,7 +325,7 @@ def load_data(path: str):
         if col not in df.columns:
             df[col] = ""
     if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
+        df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date  # pyrefly: ignore
     for col in ("status", "file_type"):
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip().str.lower()
@@ -358,20 +347,39 @@ def metric_card(icon, value, label, color_class, delta_text=""):
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown('<div class="sidebar-title">📬 RPA Dashboard</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-sub">Email Attachment Organizer</div>', unsafe_allow_html=True)
+    # ระบบสุ่มภาพ/GIF ใน Sidebar
+    import random
+    os.makedirs("logos", exist_ok=True) # สร้างโฟลเดอร์ให้อัตโนมัติถ้ายังไม่มี
+    
+    # หาไฟล์รูปภาพทั้งหมดในโฟลเดอร์ logos
+    logo_files = [f for f in os.listdir("logos") if f.lower().endswith(('.gif', '.png', '.jpg', '.jpeg', '.webp'))]
+    
+    if logo_files:
+        # สุ่มมา 1 
+        chosen_logo = random.choice(logo_files)
+        try:
+            st.image(os.path.join("logos", chosen_logo), use_container_width=True)
+        except Exception:
+            pass
+    else:
+        st.markdown(
+            '<div style="text-align:center; padding: 2rem 0; border: 2px dashed #b2bac5; border-radius: 12px; margin-bottom: 1rem; color: #7b8498;">'
+            '📷 <br>โปรแกรมสร้างโฟลเดอร์ <b>logos</b> ให้แล้ว!<br>นำไฟล์ GIF กีไฟล์ก็ได้ไปวางรวมกันในนั้นได้เลยจ้าาาา'
+            '</div>', 
+            unsafe_allow_html=True
+        )
 
-    st.markdown('<div class="section-label">🗓 Date Range</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Date Range</div>', unsafe_allow_html=True)
     today    = date.today()
     week_ago = today - timedelta(days=7)
     date_from = st.date_input("From", value=week_ago, max_value=today, key="date_from")
     date_to   = st.date_input("To",   value=today,    max_value=today, key="date_to")
     if date_from > date_to:
-        st.warning("⚠️ 'From' must be before 'To'.")
+        st.warning("'From' must be before 'To'.")
 
     st.markdown('<hr class="neu-divider" style="margin:1rem 0"/>', unsafe_allow_html=True)
     st.markdown('<div class="section-label">🔄 Actions</div>', unsafe_allow_html=True)
-    if st.button("🔄  Refresh Data", use_container_width=True):
+    if st.button("Refresh Data", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
 
@@ -421,8 +429,8 @@ st.markdown(f"""
     <div class="hero-icon">📬</div>
     <div>
         <div class="hero-pill">Live Dashboard</div>
-        <div class="hero-title">RPA Email Attachment</div>
-        <p class="hero-sub">Automated organiser &nbsp;·&nbsp; {last_updated}</p>
+        <div class="hero-title">Auto Email Attachment</div>
+        <p class="hero-sub">Organizer &nbsp;·&nbsp; {last_updated}</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -438,7 +446,7 @@ img_cnt = len(df[df["file_type"] == "image"]) if "file_type" in df.columns else 
 
 success_rate = f"{int(success/total*100)}% success rate" if total else "No data"
 
-st.markdown('<div class="section-label">📊 Overview</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Overview</div>', unsafe_allow_html=True)
 c1, c2, c3, c4, c5 = st.columns(5)
 cols_data = [
     (c1, "📁", total,   "Total Files",  "c-blue",   success_rate),
@@ -459,7 +467,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 chart_col, donut_col = st.columns([3, 2], gap="large")
 
 with chart_col:
-    st.markdown('<div class="section-label">📊 Files by Type</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Files by Type</div>', unsafe_allow_html=True)
     if "file_type" in df.columns and not df.empty:
         ft_counts = (
             df["file_type"]
@@ -497,7 +505,7 @@ with chart_col:
         st.info("No data in selected date range.")
 
 with donut_col:
-    st.markdown('<div class="section-label">🍩 Status Split</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Status Split</div>', unsafe_allow_html=True)
     if "status" in df.columns and not df.empty:
         status_counts = (
             df["status"]
@@ -538,7 +546,7 @@ with donut_col:
 # ══════════════════════════════════════════════════════════════════════════════
 # TREND LINE
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-label">📈 Daily Activity</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Daily Activity</div>', unsafe_allow_html=True)
 if "date" in df.columns and not df.empty and df["date"].notna().any():
     daily = (
         df.groupby(["date", "status"])
@@ -583,7 +591,7 @@ else:
 # ══════════════════════════════════════════════════════════════════════════════
 # LOG TABLE
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="section-label">📋 Activity Log</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Activity Log</div>', unsafe_allow_html=True)
 
 # Search bar
 search = st.text_input("🔍  Search files, subjects or senders…", placeholder="Type to filter…", key="search")
@@ -605,7 +613,7 @@ display_df.columns = list(available.values())
 if search:
     mask = display_df.apply(
         lambda col: col.astype(str).str.contains(search, case=False, na=False)
-    ).any(axis=1)
+    ).any(axis=1)  # pyrefly: ignore
     display_df = display_df[mask]
 
 # st.markdown('<div class="neu-panel" style="padding:0.8rem 1rem;">', unsafe_allow_html=True)
@@ -620,14 +628,4 @@ st.dataframe(
         "Type":    st.column_config.TextColumn("Type"),
     },
 )
-# st.markdown('</div>', unsafe_allow_html=True)
 
-# Summary footer
-# st.markdown(f"""
-# <div style="text-align:center; margin-top:2rem;">
-#     <span class="neu-tag">📁 {total} total</span>
-#     <span class="neu-tag" style="color:#6bcfa0;">✅ {success} success</span>
-#     <span class="neu-tag" style="color:{ACCENT};">❌ {failed} failed</span>
-#     <span class="neu-tag">📅 {date_from} → {date_to}</span>
-# </div>
-# """, unsafe_allow_html=True)

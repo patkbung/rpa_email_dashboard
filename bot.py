@@ -1,9 +1,4 @@
 """
-bot.py — Automated Email Attachment Organizer (Phase 2: Gmail IMAP + local organiser)
-
-Run with:
-    python3 bot.py
-
 What it does
 ────────────
 1.  Creates all required folders if they are missing.
@@ -26,7 +21,6 @@ from datetime import datetime
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 from config import (
