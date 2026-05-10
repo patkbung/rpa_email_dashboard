@@ -97,8 +97,9 @@ section[data-testid="stSidebar"] .stSelectbox > div > div {{
     color: {TEXT_MAIN} !important;
 }}
 
-/* ── Streamlit buttons → neumorph style ── */
-.stButton > button {{
+/* ── Streamlit buttons & Download buttons → neumorph style ── */
+.stButton > button,
+[data-testid="stDownloadButton"] > button {{
     background: {BG};
     color: {TEXT_MAIN};
     border: none;
@@ -110,11 +111,13 @@ section[data-testid="stSidebar"] .stSelectbox > div > div {{
     transition: all 0.18s ease;
     cursor: pointer;
 }}
-.stButton > button:hover {{
+.stButton > button:hover,
+[data-testid="stDownloadButton"] > button:hover {{
     box-shadow: 3px 3px 6px {SHADOW_DARK}, -3px -3px 6px {SHADOW_LITE};
     color: {ACCENT};
 }}
-.stButton > button:active {{
+.stButton > button:active,
+[data-testid="stDownloadButton"] > button:active {{
     box-shadow: inset 3px 3px 6px {SHADOW_DARK}, inset -3px -3px 6px {SHADOW_LITE};
 }}
 
@@ -603,6 +606,7 @@ DISPLAY_COLS = {
     "sender":        "Sender",
     "file_name":     "File Name",
     "file_type":     "Type",
+    "save_path":     "Save Path",
     "status":        "Status",
     "error_message": "Error",
 }
@@ -617,15 +621,98 @@ if search:
     display_df = display_df[mask]
 
 # st.markdown('<div class="neu-panel" style="padding:0.8rem 1rem;">', unsafe_allow_html=True)
-st.dataframe(
-    display_df,
-    width="stretch",
-    hide_index=True,
-    height=380,
-    column_config={
-        "Date":    st.column_config.DateColumn("Date",   format="YYYY-MM-DD"),
-        "Status":  st.column_config.TextColumn("Status"),
-        "Type":    st.column_config.TextColumn("Type"),
-    },
-)
+st.markdown('<p style="font-size: 0.85rem; color: #7b8498;">💡 <i>Tip: You can click at the table <b>to download files</b></i></p>', unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Download files คลิกเลือกตาราง  โย่วววๆ
+# ══════════════════════════════════════════════════════════════════════════════
+
+# แบ่งหน้าจอเป็น 2 ฝั่ง
+table_col, action_col = st.columns([4, 1], gap="medium")
+
+with table_col:
+    event = st.dataframe(
+        display_df,
+        width="stretch",
+        hide_index=True,
+        height=380,
+        on_select="rerun",
+        selection_mode="multi-row",
+        column_config={
+            "Date":      st.column_config.DateColumn("Date",   format="YYYY-MM-DD"),
+            "Status":    st.column_config.TextColumn("Status"),
+            "Type":      st.column_config.TextColumn("Type"),
+            "Save Path": st.column_config.TextColumn("Save Path"),
+        },
+    )
+
+with action_col:
+    #  Download ไฟล์เมื่อมีการคลิกเลือกตาราง 
+    selected_rows = getattr(event, "selection", event).rows if hasattr(event, "selection") else []  # pyrefly: ignore
+    
+    if len(selected_rows) == 1:
+        # กรณีเลือก 1 ไฟล์: โหลดไฟล์ตรงๆ
+        selected_idx = selected_rows[0]
+        row_data = display_df.iloc[selected_idx]
+        
+        file_path = str(row_data.get("Save Path", ""))
+        file_name = str(row_data.get("File Name", "attachment"))
+        status    = str(row_data.get("Status", ""))
+        
+        st.markdown(f"**Selected:**<br><span style='font-size:0.8rem; color:#f4896b;'>{file_name}</span>", unsafe_allow_html=True)
+        
+        if status == "success" and os.path.exists(file_path):
+            with open(file_path, "rb") as f:
+                file_bytes = f.read()
+                
+            st.download_button(
+                label=f"Download",
+                data=file_bytes,
+                file_name=file_name,
+                mime="application/octet-stream",
+                use_container_width=True,
+            )
+        else:
+            st.error(f"❌ The download failed (file missing).")
+            
+    elif len(selected_rows) > 1:
+        # กรณีเลือกหลายไฟล์: .zip
+        import zipfile
+        import io
+        
+        zip_buffer = io.BytesIO()
+        valid_files = 0
+        
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for idx in selected_rows:
+                row_data = display_df.iloc[idx]
+                file_path = str(row_data.get("Save Path", ""))
+                file_name = str(row_data.get("File Name", f"file_{idx}"))
+                status    = str(row_data.get("Status", ""))
+                
+                if status == "success" and os.path.exists(file_path):
+                    zip_file.write(file_path, arcname=file_name)
+                    valid_files += 1
+                    
+        if valid_files > 0:
+            st.markdown(f"**Selected:**<br><span style='font-size:0.8rem; color:#f4896b;'>{valid_files} files</span>", unsafe_allow_html=True)
+            st.download_button(
+                label=f"Download ZIP",
+                data=zip_buffer.getvalue(),
+                file_name="attachments_export.zip",
+                mime="application/zip",
+                use_container_width=True,
+            )
+        else:
+            st.error(f"❌ No valid files selected.")
+            
+    else:
+        # กรณียังไม่ได้เลือก
+        st.markdown("""
+        <div style="text-align:center; padding: 2rem 1rem; border: 2px dashed #b2bac5; border-radius: 12px; color: #7b8498; font-size: 0.85rem;">
+            <br>Click on the table.<br>to download files<br><br><i>*✅ multiple items to<br>download as .zip</i>
+        </div>
+        """, unsafe_allow_html=True)
+
 
