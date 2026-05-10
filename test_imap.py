@@ -76,7 +76,7 @@ def main():
         print(f"  Found {len(mailbox_list)} mailbox(es):\n")
         for item in mailbox_list:
             if item:
-                decoded = item.decode("utf-8", errors="replace") if isinstance(item, bytes) else item
+                decoded = item.decode("utf-8", errors="replace") if isinstance(item, bytes) else str(item)
                 # Highlight Gmail system folders
                 marker = "  ← SPAM?" if any(k in decoded.lower() for k in ["spam", "junk", "สแปม"]) else ""
                 print(f"    {decoded}{marker}")
