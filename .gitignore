@@ -9,10 +9,8 @@ venv/
 env/
 
 # ── Downloaded files & runtime data (auto-generated) ──────────
-downloads/
 temp_downloads/
 test_files/
-reports/
 logs/
 
 # ── Python cache ───────────────────────────────────────────────
@@ -35,3 +33,6 @@ build/
 .idea/
 *.swp
 *.swo
+
+# ── Secret tokens ──
+*token*.json
