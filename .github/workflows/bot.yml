@@ -40,4 +40,5 @@ jobs:
           git add reports/ downloads/
           # Only commit if there are changes
           git diff --quiet && git diff --staged --quiet || git commit -m "🤖 Auto-update RPA reports and downloads [skip ci]"
+           git pull --rebase origin main
           git push
